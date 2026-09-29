@@ -1,5 +1,5 @@
 ---
-description: Offer to hand heavy work to Codex (GPT-5) as a subagent so it runs on the ChatGPT plan quota instead of burning Claude context and tokens. Use at the START of any task that is large, repetitive, or asset-producing — bulk refactors across many files, generating boilerplate or fixtures, exhaustive repo-wide audits, writing many similar tests, and anything needing mockups or images. Also use whenever the user says "save tokens", "use codex", "delegate this", or "who should do this".
+description: Offer to hand heavy work to Codex (latest GPT model) as a subagent so it runs on the ChatGPT plan quota instead of burning Claude context and tokens. Use at the START of any task that is large, repetitive, or asset-producing — bulk refactors across many files, generating boilerplate or fixtures, exhaustive repo-wide audits, writing many similar tests, and anything needing mockups or images. Also use whenever the user says "save tokens", "use codex", "delegate this", or "who should do this".
 ---
 
 # Delegate to Codex when it saves the user tokens

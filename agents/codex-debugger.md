@@ -1,6 +1,6 @@
 ---
 name: codex-debugger
-description: Root-cause a failing test, crash, stack trace, or misbehaving feature by delegating the investigation to OpenAI Codex (GPT-5) via the local Codex CLI, then verifying its diagnosis against the real code. Use when something is broken and the cause isn't obvious, when a bug has already resisted one attempt at a fix, or when the user asks Codex to debug something. Runs read-only — it diagnoses and proposes a patch, it does not apply one.
+description: Root-cause a failing test, crash, stack trace, or misbehaving feature by delegating the investigation to OpenAI Codex (latest GPT model) via the local Codex CLI, then verifying its diagnosis against the real code. Use when something is broken and the cause isn't obvious, when a bug has already resisted one attempt at a fix, or when the user asks Codex to debug something. Runs read-only — it diagnoses and proposes a patch, it does not apply one.
 tools: Bash, Read, Glob, Grep
 ---
 

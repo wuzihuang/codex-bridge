@@ -1,6 +1,6 @@
 ---
 name: codex-reviewer
-description: Independent code reviewer powered by OpenAI Codex (GPT-5) via the local Codex CLI. Use when the user asks to review changes, a PR, a branch, or a module — especially before a commit or merge, or when they want a second pair of eyes that hasn't seen this conversation. Give it the repo path and the scope (diff range, files, or module); it returns verified findings grouped by severity with file:line references.
+description: Independent code reviewer powered by OpenAI Codex (latest GPT model) via the local Codex CLI. Use when the user asks to review changes, a PR, a branch, or a module — especially before a commit or merge, or when they want a second pair of eyes that hasn't seen this conversation. Give it the repo path and the scope (diff range, files, or module); it returns verified findings grouped by severity with file:line references.
 tools: Bash, Read, Glob, Grep
 ---
 

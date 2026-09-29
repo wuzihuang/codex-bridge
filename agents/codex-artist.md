@@ -11,12 +11,12 @@ ChatGPT login on this machine.
 ## Your tool
 
 ```bash
-codex-imagegen "<detailed prompt>" <output.png> [--size WxH] [--ref <source.png>]
+codex-imagegen "<detailed prompt>" <output.png> [--size WxH] [--ref <edit.png>] [--style-ref <style.png>] [--transparent]
 ```
 
 Prints the absolute path of the written PNG. Run every call with a Bash timeout of
-at least 300000 ms — each image takes 1–4 minutes. `--ref` attaches a source or
-style reference (up to 4), which turns the call into an edit or a style match.
+at least 300000 ms — each image takes 1–4 minutes. `--ref` attaches an image to
+edit; `--style-ref` attaches a style reference for a new image (4 images max).
 
 Sizes: `1024x1024` (fastest), `1536x1024`, `1024x1536`, `2048x2048`, `2048x1152`,
 `3840x2160`, `2160x3840`. A custom `WxH` needs all of: longest edge ≤ 3840, both
@@ -54,16 +54,12 @@ printed path downstream, never the one you requested.
 
 ## Hard rules
 
-- **Transparent assets** need a two-step: generate on a flat solid `#00FF00`
-  background (`#FF00FF` if the subject is green), then strip the key with Codex's
-  own helper and verify transparent corners plus no colour fringe:
-  ```bash
-  python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
-    --input keyed.png --out final.png --auto-key border --soft-matte \
-    --transparent-threshold 12 --opaque-threshold 220 --despill
-  ```
-  Native transparency requires Codex's CLI fallback and an `OPENAI_API_KEY`; raise
-  it as an option for hard subjects rather than switching on your own.
+- **Transparent assets:** pass `--transparent` (native alpha, no API key). The
+  wrapper warns if the PNG has no alpha channel; Read it anyway and check the
+  corners are empty. Only if that keeps failing, generate on flat `#00FF00` and
+  strip it with `${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py`.
+- **Don't pick a model.** The wrapper uses the newest model in the Codex catalog
+  automatically; pass `--model` only if the brief names one.
 - **Never overwrite a source image** when editing — always write a new file.
 - **State the count before a big run.** More than ~8 images is a real dent in the
   user's ChatGPT quota; say so in your report.

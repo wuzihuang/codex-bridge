@@ -1,5 +1,5 @@
 ---
-description: Ask OpenAI Codex (GPT-5) a one-off question about the current repo and get its answer back, without spinning up a subagent. Use when the user says "ask codex", "what does GPT think", "get a second opinion on this", or when you want an independent read on a design call, a tricky bug, or an unfamiliar area of the codebase.
+description: Ask OpenAI Codex (latest GPT model) a one-off question about the current repo and get its answer back, without spinning up a subagent. Use when the user says "ask codex", "what does GPT think", "get a second opinion on this", or when you want an independent read on a design call, a tricky bug, or an unfamiliar area of the codebase.
 ---
 
 # Ask Codex a question
@@ -33,7 +33,9 @@ codex-run -C /path/to/repo \
 
 ```
 -s workspace-write   let Codex modify files (only when the user asked for that)
--m gpt-5-codex       model override
+-m <model>           model override (default: newest in your catalog; run codex-models)
+-e high              reasoning effort
+-i shot.png          attach an image for Codex to look at
 -r                   continue the previous codex session (follow-up question)
 --timeout 1800       raise the 900s default for a big repo sweep
 --raw                also print Codex's full event log to stderr, for debugging

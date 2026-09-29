@@ -1,5 +1,5 @@
 ---
-description: Get an independent code review from OpenAI Codex (GPT-5) on uncommitted changes, a branch diff, a PR, or a specific module — returns findings grouped by severity with file:line references. Use when the user says "review this", "review my changes", "check this PR", "what did I miss", or before they commit or merge something substantial.
+description: Get an independent code review from OpenAI Codex (latest GPT model) on uncommitted changes, a branch diff, a PR, or a specific module — returns findings grouped by severity with file:line references. Use when the user says "review this", "review my changes", "check this PR", "what did I miss", or before they commit or merge something substantial.
 ---
 
 # Code review by Codex

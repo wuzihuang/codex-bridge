@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.2.0
+
+Maintained fork at [wuzihuang/codex-bridge](https://github.com/wuzihuang/codex-bridge).
+Every change below was verified end to end against codex-cli 0.158.0 on the
+newest catalog model (`gpt-6-astra`).
+
+- **Always the newest model.** New `bin/codex-models` reads Codex's live model
+  catalog (`codex debug models`) and resolves the newest image-capable model.
+  `codex-imagegen` and `codex-run` now default to `--model latest`, resolved on
+  every run, so a newly released model is picked up with no plugin update.
+  `--model default` restores the old behaviour (use `~/.codex/config.toml`);
+  `CODEX_BRIDGE_MODEL` sets it globally.
+- **Native transparency.** Codex's built-in image tool now emits real alpha with no
+  API key. New `--transparent` flag asks for it and verifies the PNG really has
+  an alpha channel (IHDR colour type / `tRNS`), warning if not. The chroma-key
+  recipe is kept only as a fallback.
+- **`--style-ref`.** Attach an image purely as a style reference for a *new*
+  image, distinct from `--ref` (the image to edit). Attachments are numbered in the
+  instruction so Codex knows which is which.
+- **Reasoning effort control.** `--effort` on both wrappers
+  (`CODEX_BRIDGE_IMAGE_EFFORT`, default `medium` for images; `CODEX_BRIDGE_EFFORT`
+  for text). Stops a global `xhigh` config from adding minutes to every image.
+- **Codex vision.** `codex-run -i <image>` (repeatable) attaches images to a task.
+  New `codex-vision` skill: screenshot-vs-mock diffs, checking an asset against its
+  brief, reading charts.
+- Skill and agent docs no longer name a stale model (`gpt-5-codex`), and describe
+  native transparency.
+- Smoke tests cover the latest-model default and resolver.
+
 ## 1.1.2
 
 Two blocking bugs, both found by actually running the wrappers against codex-cli 0.146.0.

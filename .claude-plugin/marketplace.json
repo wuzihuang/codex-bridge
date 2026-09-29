@@ -1,31 +1,33 @@
 {
   "name": "codex-bridge",
   "metadata": {
-    "description": "Image generation and GPT-5 subagents for Claude Code, powered by your existing Codex CLI login."
+    "description": "Codex image generation, editing, vision and subagents for Claude Code, powered by your existing Codex CLI login."
   },
   "owner": {
-    "name": "Sateezg",
-    "url": "https://github.com/Sateezg"
+    "name": "wuzihuang",
+    "url": "https://github.com/wuzihuang"
   },
   "plugins": [
     {
       "name": "codex-bridge",
       "source": "./",
-      "description": "Give Claude Code image generation (gpt-image-2) and a team of GPT-5 subagents for review, debugging, and bulk implementation - all through your existing Codex CLI ChatGPT login. Heavy work runs on your ChatGPT quota instead of your Claude context. No OpenAI API key required.",
-      "version": "1.1.2",
+      "description": "Let Claude Code use Codex's image features — generate and edit images (gpt-image-2, native transparency), let Codex look at screenshots, and delegate review/debugging/bulk work to Codex subagents — all through your existing Codex CLI ChatGPT login, always on the newest model in your Codex catalog. No OpenAI API key required.",
+      "version": "1.2.0",
       "author": {
-        "name": "Sateezg",
-        "url": "https://github.com/Sateezg"
+        "name": "wuzihuang",
+        "url": "https://github.com/wuzihuang"
       },
-      "homepage": "https://github.com/Sateezg/codex-bridge",
-      "repository": "https://github.com/Sateezg/codex-bridge",
+      "homepage": "https://github.com/wuzihuang/codex-bridge",
+      "repository": "https://github.com/wuzihuang/codex-bridge",
       "license": "MIT",
       "category": "productivity",
       "keywords": [
         "codex",
         "image-generation",
+        "image-editing",
         "gpt-image-2",
-        "gpt-5",
+        "transparent-png",
+        "vision",
         "subagent",
         "openai",
         "code-review",

@@ -1,6 +1,6 @@
 ---
 name: codex-implementer
-description: Hand a well-specified, high-volume coding task to OpenAI Codex (GPT-5) to actually write the code, so it runs on the user's ChatGPT quota instead of this session's context. Use for mechanical work across many files (renames, import migrations, adding a pattern everywhere), bulk generation (scaffolding, fixtures, repetitive tests), or a self-contained module port. Requires an explicit, verifiable spec. WRITES TO FILES — only use when the user has agreed to Codex editing their repo.
+description: Hand a well-specified, high-volume coding task to OpenAI Codex (latest GPT model) to actually write the code, so it runs on the user's ChatGPT quota instead of this session's context. Use for mechanical work across many files (renames, import migrations, adding a pattern everywhere), bulk generation (scaffolding, fixtures, repetitive tests), or a self-contained module port. Requires an explicit, verifiable spec. WRITES TO FILES — only use when the user has agreed to Codex editing their repo.
 tools: Bash, Read, Glob, Grep
 ---
 

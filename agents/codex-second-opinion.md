@@ -1,6 +1,6 @@
 ---
 name: codex-second-opinion
-description: Get an independent opinion from OpenAI Codex (GPT-5) on a design decision, an approach, a tradeoff, or an unfamiliar area of the codebase — a general-purpose Codex liaison for questions that don't fit the reviewer, debugger, or implementer agents. Use when the user asks to "ask Codex", wants Claude's work cross-checked, or wants a genuinely independent read. Read-only.
+description: Get an independent opinion from OpenAI Codex (latest GPT model) on a design decision, an approach, a tradeoff, or an unfamiliar area of the codebase — a general-purpose Codex liaison for questions that don't fit the reviewer, debugger, or implementer agents. Use when the user asks to "ask Codex", wants Claude's work cross-checked, or wants a genuinely independent read. Read-only.
 tools: Bash, Read, Glob, Grep
 ---
 

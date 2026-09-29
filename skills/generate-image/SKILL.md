@@ -59,26 +59,40 @@ Omit `--size` unless the aspect ratio actually matters; square is fastest.
 
 ## Transparent backgrounds
 
-The default image path can't emit alpha directly, so ask for a flat chroma-key
-background and remove it afterwards with the helper Codex already ships:
+Pass `--transparent`. Codex's built-in image tool now emits **native alpha** — no
+API key, no chroma-key step:
 
 ```bash
-codex-imagegen "<subject> on a perfectly flat solid #00FF00 chroma-key background, one uniform colour, no shadows, gradients, reflections or floor plane, crisp edges, generous padding, do not use #00FF00 anywhere in the subject" ./tmp-key.png
-
-python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
-  --input ./tmp-key.png --out ./final.png \
-  --auto-key border --soft-matte --transparent-threshold 12 \
-  --opaque-threshold 220 --despill
+codex-imagegen "a round orange fox mascot, flat vector sticker style" ./assets/fox.png --transparent
 ```
 
-Use `#FF00FF` instead when the subject is green. Then check the result actually
-has transparent corners and no colour fringe; retry once with `--edge-contract 1`
-if a thin fringe remains.
+The wrapper checks the PNG really has an alpha channel and warns on stderr if it
+doesn't. Still Read the result: check the corners are empty and there is no halo.
 
-True model-native transparency exists but needs Codex's CLI fallback
-(`gpt-image-1.5 --background transparent`), which requires an `OPENAI_API_KEY`.
-Only mention that route if chroma-keying fails or the subject is genuinely hard
-(hair, fur, smoke, glass, liquid, reflections) — and let the user decide.
+Only if native alpha keeps failing, fall back to a flat `#00FF00` background
+(`#FF00FF` for green subjects) and strip it with the helper Codex ships:
+
+```bash
+python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
+  --input ./keyed.png --out ./final.png --auto-key border --soft-matte \
+  --transparent-threshold 12 --opaque-threshold 220 --despill
+```
+
+## Style references
+
+To make a *new* image in the style of an existing one (without editing it), use
+`--style-ref` instead of `--ref`:
+
+```bash
+codex-imagegen "a settings gear icon" ./icons/settings.png --style-ref ./icons/home.png
+```
+
+## Model
+
+The wrapper always drives the **newest model in the user's Codex catalog**
+(resolved live, see `codex-models`). Only pass `--model` if the user asks for a
+specific one. `--effort` defaults to `medium`; higher effort rarely improves the
+image and adds minutes.
 
 ## Limitations
 

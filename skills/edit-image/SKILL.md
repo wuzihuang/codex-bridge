@@ -30,8 +30,9 @@ codex-imagegen "a settings gear icon in exactly the style of the reference: same
   ./out/settings.png --ref ./assets/home.png
 ```
 
-Up to four `--ref` images can be passed — useful when one is the subject and the
-others are style references. Say in the prompt which is which.
+Up to four images in total. `--ref` marks an image to **edit**; `--style-ref`
+marks one that is only a style reference. The wrapper numbers them for Codex
+(edit targets first), so you don't need to explain which is which.
 
 ## Writing the change description
 
@@ -54,17 +55,10 @@ For a series of edits, chain them one at a time (each output becomes the next
    against the request before reporting done. Regenerate with a sharper prompt if
    the model drifted — at most 2 retries.
 3. **Use a Bash timeout of at least 300000 ms** (5 minutes).
-4. **For a transparent result**, regenerate the subject on a flat `#00FF00`
-   background (`#FF00FF` if the subject is green) and strip the key with the
-   helper Codex ships:
-   ```bash
-   python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
-     --input ./keyed.png --out ./final.png --auto-key border --soft-matte \
-     --transparent-threshold 12 --opaque-threshold 220 --despill
-   ```
-   Verify transparent corners and no colour fringe afterwards. True native
-   transparency needs Codex's CLI fallback plus an `OPENAI_API_KEY` — only raise
-   that option for hard subjects (hair, fur, glass, smoke) and let the user decide.
+4. **For a transparent result**, add `--transparent` — the built-in tool keeps
+   native alpha, and the wrapper warns if the PNG came back without it. Say
+   "keep the transparent background" in the prompt when the source is already
+   transparent.
 5. **Not for precise pixel work.** Cropping, resizing, rotating, format conversion
    and compression are faster and lossless with ImageMagick or `sips` — use those
    directly instead of regenerating.

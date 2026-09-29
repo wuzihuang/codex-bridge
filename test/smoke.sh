@@ -15,7 +15,7 @@ bad()  { printf '  FAIL %s\n' "$1"; FAIL=1; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 
 echo "syntax"
-for f in "$BIN"/codex-imagegen "$BIN"/codex-run; do
+for f in "$BIN"/codex-imagegen "$BIN"/codex-run "$BIN"/codex-models; do
   check "$(basename "$f") parses" "bash -n '$f' 2>/dev/null"
 done
 
@@ -53,6 +53,20 @@ check "codex-imagegen passes the instruction after --" \
   "grep -q 'CMD+=(-- \"\\\$INSTRUCTION\")' '$BIN/codex-imagegen'"
 check "codex-run passes the task after --" \
   "grep -q 'CMD+=(-- \"\\\$TASK\")' '$BIN/codex-run'"
+
+# 1.2.0 — the wrappers must default to the newest catalog model, not a
+# hard-coded slug that goes stale the next time OpenAI ships a model.
+echo
+echo "latest model"
+check "codex-imagegen defaults to latest" "grep -q 'MODEL=\"\${CODEX_BRIDGE_MODEL:-latest}\"' '$BIN/codex-imagegen'"
+check "codex-run defaults to latest" "grep -q 'MODEL=\"\${CODEX_BRIDGE_MODEL:-latest}\"' '$BIN/codex-run'"
+check "no hard-coded gpt-5 model in wrappers" "! grep -q 'gpt-5' '$BIN/codex-imagegen' '$BIN/codex-run'"
+if command -v codex >/dev/null 2>&1 && codex login status >/dev/null 2>&1; then
+  LATEST="$("$BIN/codex-models" --latest 2>/dev/null)"
+  if [ -n "$LATEST" ]; then ok "codex-models --latest resolves ($LATEST)"; else bad "codex-models --latest resolved nothing"; fi
+else
+  echo "  skip codex not installed or not logged in"
+fi
 
 echo
 if [ "$FAIL" -eq 0 ]; then echo "all passed"; else echo "FAILURES"; fi

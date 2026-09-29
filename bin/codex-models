@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# codex-models — list the models your Codex login can use, newest first, or
+# resolve the newest one. Reads Codex's live model catalog (`codex debug models`),
+# so a new model shows up here the day OpenAI ships it — nothing is hard-coded.
+#
+# Usage:
+#   codex-models              # table: slug, name, reasoning levels, inputs
+#   codex-models --latest     # print only the newest image-capable model slug
+#   codex-models --json       # the raw catalog entries we consider
+#
+# "Newest" = the visible model with the best (lowest) catalog priority that
+# accepts image input — the same ordering Codex's own model picker uses.
+#
+# Exit: 0 ok | 1 codex missing or catalog unreadable.
+
+set -uo pipefail
+
+err() { printf 'codex-models: %s\n' "$*" >&2; }
+
+MODE="table"
+case "${1:-}" in
+  --latest) MODE="latest" ;;
+  --json)   MODE="json" ;;
+  -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  "") : ;;
+  *) err "unknown argument: $1"; exit 1 ;;
+esac
+
+command -v codex >/dev/null 2>&1 || { err "codex CLI not found on PATH"; exit 1; }
+command -v python3 >/dev/null 2>&1 || { err "python3 is required to read the model catalog"; exit 1; }
+
+CATALOG="$(codex debug models 2>/dev/null)"
+[ -n "$CATALOG" ] || { err "could not read the model catalog ('codex debug models' returned nothing)"; exit 1; }
+
+printf '%s' "$CATALOG" | MODE="$MODE" python3 -c '
+import json, os, sys
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    sys.stderr.write("codex-models: model catalog is not valid JSON\n"); sys.exit(1)
+models = data.get("models", data) if isinstance(data, dict) else data
+visible = [m for m in models if m.get("visibility", "list") == "list"]
+visible.sort(key=lambda m: m.get("priority", 1 << 30))
+mode = os.environ["MODE"]
+if mode == "latest":
+    for m in visible:
+        if "image" in (m.get("input_modalities") or ["text", "image"]):
+            print(m["slug"]); sys.exit(0)
+    sys.exit(1)
+if mode == "json":
+    json.dump(visible, sys.stdout, indent=2); print(); sys.exit(0)
+rows = [("MODEL", "NAME", "REASONING", "INPUT")]
+for m in visible:
+    levels = [l.get("effort", "") for l in m.get("supported_reasoning_levels", [])]
+    rows.append((m["slug"], m.get("display_name", ""), ",".join(levels),
+                 "+".join(m.get("input_modalities") or [])))
+w = [max(len(r[i]) for r in rows) for i in range(4)]
+for r in rows:
+    print("  ".join(c.ljust(w[i]) for i, c in enumerate(r)).rstrip())
+'

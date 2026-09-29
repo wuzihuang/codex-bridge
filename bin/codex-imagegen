@@ -9,15 +9,26 @@
 #   --size WxH        1024x1024 (default) | 1536x1024 | 1024x1536 | 1280x640 | 3840x2160
 #                     Custom sizes: longest edge <= 3840, both edges multiples of
 #                     16, ratio <= 3:1, total pixels 655,360-8,294,400.
-#   --ref <file>      Source/reference image. Repeatable (max 4). Passing a --ref
-#                     turns this into an EDIT: describe the change in the prompt.
-#   --model <name>    Model override passed to codex
+#   --ref <file>      Image to EDIT. Repeatable (max 4 images total). Passing a
+#                     --ref turns this into an edit: describe the change.
+#   --style-ref <f>   Image used only as a style/composition reference for a NEW
+#                     image (not edited). Repeatable; shares the 4-image cap.
+#   --transparent     Ask for a genuinely transparent background (native alpha)
+#                     and verify the PNG actually has an alpha channel.
+#   --model <name>    Codex model. Default: latest — the newest model in your
+#                     Codex catalog (see `codex-models`). `default` = whatever
+#                     your ~/.codex/config.toml says. Env: CODEX_BRIDGE_MODEL.
+#   --effort <level>  Reasoning effort for the driving model (low | medium |
+#                     high | xhigh | ...). Default: medium. The model only has
+#                     to shape the prompt and call the image tool, so high
+#                     effort mostly adds latency. Env: CODEX_BRIDGE_IMAGE_EFFORT.
 #   --timeout <sec>   Abort after N seconds (default: 600)
 #
 # Examples:
 #   codex-imagegen "flat vector rocket icon, blue #2563EB, minimal" ./rocket.png
 #   codex-imagegen "make the sky sunset orange, keep everything else identical" \
 #       ./out.png --ref ./original.png
+#   codex-imagegen "a mascot fox, sticker style" ./fox.png --transparent
 #
 # Output: absolute path of the written PNG on stdout.
 # Exit:   0 ok | 1 usage/precondition | 2 generation failed | 124 timed out.
@@ -30,7 +41,7 @@ err() { printf 'codex-imagegen: %s\n' "$*" >&2; }
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 
 usage() {
-  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
   exit 1
 }
 
@@ -39,16 +50,22 @@ usage() {
 PROMPT="$1"; shift
 OUTPUT="$1"; shift
 SIZE=""
-MODEL=""
+MODEL="${CODEX_BRIDGE_MODEL:-latest}"
+EFFORT="${CODEX_BRIDGE_IMAGE_EFFORT:-medium}"
+TRANSPARENT=0
 TIMEOUT=600
 REFS=()
+STYLE_REFS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --size)    SIZE="${2:-}"; shift 2 ;;
     --model)   MODEL="${2:-}"; shift 2 ;;
     --timeout) TIMEOUT="${2:-}"; shift 2 ;;
+    --effort)  EFFORT="${2:-}"; shift 2 ;;
     --ref)     REFS+=("${2:-}"); shift 2 ;;
+    --style-ref) STYLE_REFS+=("${2:-}"); shift 2 ;;
+    --transparent) TRANSPARENT=1; shift ;;
     -h|--help) usage ;;
     *) err "unknown argument: $1"; usage ;;
   esac
@@ -57,8 +74,9 @@ done
 [ -n "$PROMPT" ] || { err "prompt is empty"; exit 1; }
 [ -n "$OUTPUT" ] || { err "output path is empty"; exit 1; }
 
-if [ "${#REFS[@]}" -gt 4 ]; then
-  err "at most 4 --ref images are supported (got ${#REFS[@]})"
+N_IMAGES=$(( ${#REFS[@]} + ${#STYLE_REFS[@]} ))
+if [ "$N_IMAGES" -gt 4 ]; then
+  err "at most 4 --ref/--style-ref images are supported in total (got ${N_IMAGES})"
   exit 1
 fi
 
@@ -73,13 +91,30 @@ if ! codex login status >/dev/null 2>&1; then
   exit 1
 fi
 
-for r in "${REFS[@]:-}"; do
+for r in "${REFS[@]:-}" "${STYLE_REFS[@]:-}"; do
   [ -n "$r" ] || continue
   if [ ! -f "$r" ]; then
     err "reference image not found: $r"
     exit 1
   fi
 done
+
+# --- Resolve the model -------------------------------------------------------
+# `latest` is resolved against Codex's live catalog on every run, so the wrapper
+# picks up a new model the day it ships. If the catalog can't be read we fall
+# back to the user's config default rather than failing the generation.
+case "$MODEL" in
+  latest)
+    RESOLVED="$("$(dirname "$0")/codex-models" --latest 2>/dev/null)"
+    if [ -n "$RESOLVED" ]; then
+      MODEL="$RESOLVED"
+    else
+      err "note: could not resolve the latest model; using your codex config default."
+      MODEL=""
+    fi
+    ;;
+  default|"") MODEL="" ;;
+esac
 
 # --- Resolve output path -----------------------------------------------------
 case "$OUTPUT" in
@@ -98,18 +133,29 @@ OUTPUT="$OUTDIR/$BASENAME"
 # image-generation skill.
 SAVE_RULE="Save the final image to the exact path ./${BASENAME} in the current working directory. I explicitly authorize replacing any existing file at that path, so overwrite it in place - do NOT create a versioned sibling filename such as ${BASENAME%.*}-v2.${BASENAME##*.}. Do nothing else: no code changes, no extra files, no questions, no commentary."
 
-if [ "${#REFS[@]}" -gt 0 ]; then
-  INSTRUCTION="Use the \$imagegen image generation tool to edit the attached reference image(s). Preserve everything not mentioned in the change description. ${SAVE_RULE} Change to make: ${PROMPT}"
+# Attached images are numbered in the order they are passed: edit targets
+# first, then style references — the instruction names them by that index.
+N_EDIT=${#REFS[@]}
+N_STYLE=${#STYLE_REFS[@]}
+if [ "$N_EDIT" -gt 0 ]; then
+  INSTRUCTION="Use the \$imagegen image generation tool to edit the attached image(s) 1-${N_EDIT} (the edit target). Preserve everything not mentioned in the change description. ${SAVE_RULE} Change to make: ${PROMPT}"
 else
   INSTRUCTION="Use the \$imagegen image generation tool to generate exactly one image. ${SAVE_RULE} Image description: ${PROMPT}"
+fi
+if [ "$N_STYLE" -gt 0 ]; then
+  INSTRUCTION="${INSTRUCTION} Attached image(s) $((N_EDIT + 1))-$((N_EDIT + N_STYLE)) are style references only: match their art style, palette, line weight and rendering, but do not copy their subject or edit them."
 fi
 if [ -n "$SIZE" ]; then
   INSTRUCTION="${INSTRUCTION} Desired image size: ${SIZE}."
 fi
+if [ "$TRANSPARENT" -eq 1 ]; then
+  INSTRUCTION="${INSTRUCTION} The output must be a PNG with a genuinely transparent background: request a transparent background from the image tool and preserve its alpha channel. Do not fake it with a checkerboard, white, or chroma-key background."
+fi
 
 CMD=(codex exec -C "$OUTDIR" -s workspace-write --skip-git-repo-check)
 [ -n "$MODEL" ] && CMD+=(-m "$MODEL")
-for r in "${REFS[@]:-}"; do
+[ -n "$EFFORT" ] && CMD+=(-c "model_reasoning_effort=\"$EFFORT\"")
+for r in "${REFS[@]:-}" "${STYLE_REFS[@]:-}"; do
   [ -n "$r" ] || continue
   case "$r" in /*) ABS="$r" ;; *) ABS="$(cd "$(dirname "$r")" && pwd)/$(basename "$r")" ;; esac
   CMD+=(-i "$ABS")
@@ -152,9 +198,25 @@ fi
 
 is_png() { [ -s "$1" ] && [ "$(head -c 4 "$1" | od -An -tx1 | tr -d ' \n')" = "89504e47" ]; }
 
-if is_png "$OUTPUT"; then
-  printf '%s\n' "$OUTPUT"
+# has_alpha — PNG colour type (byte 25 of the IHDR) 4 or 6 carries an alpha
+# channel; types 0/2/3 only do with a tRNS chunk.
+has_alpha() {
+  local ct
+  ct="$(od -An -tu1 -j 25 -N 1 "$1" | tr -d ' ')"
+  [ "$ct" = "4" ] || [ "$ct" = "6" ] || head -c 65536 "$1" | grep -q tRNS
+}
+
+# finish <path> — report success, warning when --transparent wasn't honoured.
+finish() {
+  if [ "$TRANSPARENT" -eq 1 ] && ! has_alpha "$1"; then
+    err "warning: --transparent was requested but the PNG has no alpha channel. Regenerate, or fall back to the chroma-key recipe in the generate-image skill."
+  fi
+  printf '%s\n' "$1"
   exit 0
+}
+
+if is_png "$OUTPUT"; then
+  finish "$OUTPUT"
 fi
 
 STEM="${BASENAME%.*}"
@@ -172,8 +234,7 @@ for cand in "$OUTDIR/$STEM"-*."$EXT"; do
 done
 if [ -n "$FOUND" ]; then
   err "note: codex wrote '$(basename "$FOUND")' instead of '$BASENAME' (it avoids overwriting); using it."
-  printf '%s\n' "$FOUND"
-  exit 0
+  finish "$FOUND"
 fi
 
 GEN_DIR="${CODEX_HOME:-$HOME/.codex}/generated_images"
@@ -192,12 +253,11 @@ if [ -d "$GEN_DIR" ]; then
   done
   if [ -n "$NEWEST" ]; then
     cp "$NEWEST" "$OUTPUT"
-    printf '%s\n' "$OUTPUT"
-    exit 0
+    finish "$OUTPUT"
   fi
 fi
 
-err "image was not produced (codex exit code: ${CODEX_STATUS})."
+err "image was not produced (codex exit code: ${CODEX_STATUS}, model: ${MODEL:-config default})."
 err "looked in: $OUTPUT , ${OUTDIR}/${STEM}-*.${EXT} , ${GEN_DIR}/*/*"
 err "--- codex output (last 30 lines) ---"
 printf '%s\n' "$CODEX_OUT" | tail -n 30 >&2
